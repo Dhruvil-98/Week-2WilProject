@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Tool</title>
+</head>
+<body>
+    <h1>Deployment Tool for {{ project }}</h1>
+
+    <h2>Environments</h2>
+    <ul>
+        {% for env in environments %}
+        <li>
+            <h3>{{ env.name }}</h3>
+            <p>Branch: {{ env.branch }}</p>
+            <form action="{{ url_for('deploy', env_name=env.name) }}" method="POST">
+                <button type="submit">Deploy</button>
+            </form>
+
+            {% if env.rollback %}
+            <form action="{{ url_for('rollback', env_name=env.name) }}" method="POST">
+                <button type="submit">Rollback</button>
+            </form>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

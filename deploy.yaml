@@ -1,0 +1,15 @@
+deploy:
+  project: "MyApp"
+  environments:
+    - name: "staging"
+      branch: "develop"
+      pre-checks:
+        - "run-tests"
+      post-deploy:
+        - "notify-team"
+    - name: "production"
+      branch: "main"
+      pre-checks:
+        - "run-tests"
+        - "approval-required"
+      rollback: true
