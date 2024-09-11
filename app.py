@@ -1,39 +1,45 @@
-from flask import Flask, render_template, request, redirect, url_for
-import subprocess
-from devops_tool import load_deployment_config, deploy_to_environment
+from flask import Flask, render_template, request, redirect, url_for, flash
+from devops_tool import DevOpsTool, DeploymentError
+import os
 
 app = Flask(__name__)
+app.secret_key = os.urandom(24)
 
-# Load configurations to display on the UI
-config = load_deployment_config()
+devops = DevOpsTool()
 
-# Home route to display project and environments
+# Home page route
 @app.route('/')
 def home():
-    project = config['deploy']['project']
-    environments = config['deploy']['environments']
-    return render_template('index.html', project=project, environments=environments)
+    return render_template('index.html', status=devops.get_deployment_status())
 
-# Route to trigger deployment for an environment
-@app.route('/deploy/<env_name>', methods=['POST'])
-def deploy(env_name):
-    # Find the environment configuration
-    for env in config['deploy']['environments']:
-        if env['name'] == env_name:
-            deploy_to_environment(
-                env_name=env['name'],
-                branch=env['branch'],
-                pre_checks=env.get('pre-checks', []),
-                post_deploy=env.get('post-deploy', []),
-                rollback_enabled=env.get('rollback', False)
-            )
-            break
+# Route to trigger deployment
+@app.route('/deploy', methods=['POST'])
+def deploy():
+    try:
+        branch = request.form.get('branch')
+        if not branch:
+            flash('Please select a branch for deployment.')
+            return redirect(url_for('home'))
+
+        # Trigger deployment
+        devops.deploy(branch)
+        flash(f'Successfully deployed branch {branch}!', 'success')
+
+    except DeploymentError as e:
+        flash(f'Deployment failed: {str(e)}', 'danger')
+
     return redirect(url_for('home'))
 
-# Route to trigger rollback for an environment
-@app.route('/rollback/<env_name>', methods=['POST'])
-def rollback(env_name):
-    subprocess.run(["git", "reset", "--hard", "HEAD~1"], check=True)
+# Route to handle rollback
+@app.route('/rollback', methods=['POST'])
+def rollback():
+    try:
+        devops.rollback()
+        flash('Rollback was successful!', 'success')
+
+    except DeploymentError as e:
+        flash(f'Rollback failed: {str(e)}', 'danger')
+
     return redirect(url_for('home'))
 
 if __name__ == '__main__':

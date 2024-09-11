@@ -1,95 +1,80 @@
-import yaml
 import subprocess
-import os
+import shutil
+from datetime import datetime
 
-# Utility function to read YAML-based DSL configuration
-def load_deployment_config(config_file='deploy.yaml'):
-    with open(config_file, 'r') as file:
-        return yaml.safe_load(file)
+class DeploymentError(Exception):
+    """Custom Exception for Deployment Errors."""
+    pass
 
-# Pre-deployment checks such as running tests or checking approvals
-def run_pre_deployment_checks(checks):
-    for check in checks:
-        if check == "run-tests":
-            result = run_tests()
-        elif check == "approval-required":
-            result = request_approval()
-        if not result:
-            print(f"Pre-deployment check {check} failed.")
-            return False
-    return True
+class DevOpsTool:
+    def __init__(self):
+        self.current_branch = 'main'
+        self.previous_branch = None
 
-# Simulated test runner
-def run_tests():
-    print("Running tests...")
-    # Simulate running tests
-    return True
+    def run_git_command(self, command, check=True):
+        """Helper function to run Git commands."""
+        try:
+            result = subprocess.run(command, check=check, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            return result.stdout
+        except subprocess.CalledProcessError as e:
+            raise DeploymentError(f"Git command failed: {e.stderr.strip()}")
 
-# Simulated manual approval
-def request_approval():
-    print("Requesting manual approval...")
-    # Simulate approval (auto-approve for the sake of simplicity)
-    return True
+    def pre_deployment_checks(self):
+        """Perform pre-deployment checks like code review status and required environment variables."""
+        # Example check for uncommitted changes
+        status = self.run_git_command(['git', 'status', '--porcelain'], check=False)
+        if status:
+            self.auto_commit_changes()
 
-# Rollback mechanism for failed deployments
-def rollback_deployment():
-    print("Rolling back to previous version...")
-    try:
-        # Reverting the last commit (Git)
-        subprocess.run(["git", "reset", "--hard", "HEAD~1"], check=True)
-        print("Rollback successful.")
-    except subprocess.CalledProcessError:
-        print("Rollback failed!")
+        # Add other checks like environment variables if needed
+        required_env_vars = ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']
+        for var in required_env_vars:
+            if not shutil.which(var):
+                raise DeploymentError(f"Missing required environment variable: {var}")
 
-# Deployment function
-def deploy_to_environment(env_name, branch, pre_checks, post_deploy=None, rollback_enabled=False):
-    print(f"\nDeploying to {env_name} (Branch: {branch})...")
+    def auto_commit_changes(self):
+        """Automatically commit uncommitted changes with a unique commit message."""
+        print("Uncommitted changes detected. Automatically committing changes...")
 
-    # Checkout the branch
-    subprocess.run(["git", "checkout", branch], check=True)
+        # Stage all changes
+        self.run_git_command(['git', 'add', '.'])
 
-    # Run pre-deployment checks
-    if not run_pre_deployment_checks(pre_checks):
-        print(f"Pre-deployment checks failed for {env_name}. Aborting deployment.")
-        if rollback_enabled:
-            rollback_deployment()
-        return
+        # Generate a unique commit message
+        commit_message = f"Auto-commit before deployment on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 
-    # Simulate deployment process
-    print(f"Deploying {env_name}...")
-    subprocess.run(["echo", "Deploying..."], check=True)
+        # Commit the changes
+        self.run_git_command(['git', 'commit', '-m', commit_message])
 
-    # Run post-deployment actions
-    if post_deploy:
-        for action in post_deploy:
-            if action == "notify-team":
-                notify_team()
+        print(f"Changes committed with message: {commit_message}")
 
-    print(f"Deployment to {env_name} completed successfully.\n")
+    def deploy(self, branch):
+        """Deploy the specified branch."""
+        self.pre_deployment_checks()
 
-# Simulated post-deployment notification
-def notify_team():
-    print("Notifying the team...")
+        # Stash changes if necessary
+        self.run_git_command(['git', 'stash'])
 
-# Main function to handle deployment based on DSL configuration
-def main():
-    # Load deployment configuration from DSL
-    config = load_deployment_config()
+        # Fetch latest changes
+        self.run_git_command(['git', 'fetch'])
 
-    project = config['deploy']['project']
-    environments = config['deploy']['environments']
+        # Checkout branch
+        self.previous_branch = self.current_branch
+        self.run_git_command(['git', 'checkout', branch])
+        self.current_branch = branch
 
-    print(f"Starting deployment for project: {project}")
+        # Pull latest changes
+        self.run_git_command(['git', 'pull'])
 
-    # Loop through each environment
-    for env in environments:
-        deploy_to_environment(
-            env_name=env['name'],
-            branch=env['branch'],
-            pre_checks=env.get('pre-checks', []),
-            post_deploy=env.get('post-deploy', []),
-            rollback_enabled=env.get('rollback', False)
-        )
+    def rollback(self):
+        """Rollback to the previous branch."""
+        if not self.previous_branch:
+            raise DeploymentError("No previous branch to roll back to.")
 
-if __name__ == "__main__":
-    main()
+        self.run_git_command(['git', 'checkout', self.previous_branch])
+        self.current_branch = self.previous_branch
+        self.previous_branch = None
+
+    def get_deployment_status(self):
+        """Return the current deployment status."""
+        return f"Currently deployed on branch: {self.current_branch}"
+
