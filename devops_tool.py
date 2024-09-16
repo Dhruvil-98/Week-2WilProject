@@ -37,6 +37,8 @@ class DevOpsTool:
         if status:
             self.auto_commit_changes()
 
+        # Pull latest changes
+        self.run_git_command(['git', 'pull'])
         # Add other checks like environment variables if needed
         # required_env_vars = ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']
         # for var in required_env_vars:
@@ -73,18 +75,18 @@ class DevOpsTool:
         self.run_git_command(['git', 'checkout', branch])
         self.current_branch = branch
 
-        # Pull latest changes
-        self.run_git_command(['git', 'pull'])
         # Push latest changes
         self.run_git_command(['git', 'push', 'origin', branch, '--force'])
-    def rollback(self):
-        """Rollback to the previous branch."""
-        if not self.previous_branch:
-            raise DeploymentError("No previous branch to roll back to.")
 
-        self.run_git_command(['git', 'checkout', self.previous_branch])
-        self.current_branch = self.previous_branch
-        self.previous_branch = None
+    def rollback(self):
+        """Rollback to the previous commit."""
+        # Reset to the previous commit
+        self.run_git_command(['git', 'reset', '--hard', 'HEAD~1'])
+
+        # Push the changes to the remote repository
+        self.run_git_command(['git', 'push', 'origin', self.current_branch, '--force'])
+
+        print(f"Rollback successful. Reset to Previous commit and pushed to remote.")
 
     def get_deployment_status(self):
         """Return the current deployment status."""
