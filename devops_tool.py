@@ -27,10 +27,10 @@ class DevOpsTool:
             self.auto_commit_changes()
 
         # Add other checks like environment variables if needed
-        required_env_vars = ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']
-        for var in required_env_vars:
-            if not shutil.which(var):
-                raise DeploymentError(f"Missing required environment variable: {var}")
+        # required_env_vars = ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']
+        # for var in required_env_vars:
+        #     if not shutil.which(var):
+        #         raise DeploymentError(f"Missing required environment variable: {var}")
 
     def auto_commit_changes(self):
         """Automatically commit uncommitted changes with a unique commit message."""
@@ -65,7 +65,7 @@ class DevOpsTool:
         # Pull latest changes
         self.run_git_command(['git', 'pull'])
         # Push latest changes
-        self.run_git_command(['git', 'push', 'origin', branch, '--force'])
+        # self.run_git_command(['git', 'push', 'origin', branch, '--force'])
     def rollback(self):
         """Rollback to the previous branch."""
         if not self.previous_branch:
