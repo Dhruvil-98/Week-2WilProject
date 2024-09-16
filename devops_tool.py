@@ -65,7 +65,7 @@ class DevOpsTool:
         # Pull latest changes
         self.run_git_command(['git', 'pull'])
         # Push latest changes
-        # self.run_git_command(['git', 'push', 'origin', branch, '--force'])
+        self.run_git_command(['git', 'push', 'origin', branch, '--force'])
     def rollback(self):
         """Rollback to the previous branch."""
         if not self.previous_branch:
