@@ -6,6 +6,10 @@
     <title>DevOps Tool</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
+<script>
+    document.getElementById("deployButton").disabled = true;
+
+</script>
 <body>
     <div class="container mt-5">
         <h1 class="text-center">DevOps Deployment Tool</h1>
@@ -35,7 +39,7 @@
 
         <!-- Rollback Button -->
         <form method="POST" action="{{ url_for('rollback') }}" class="text-center mt-4">
-            <button type="submit" class="btn btn-warning">Rollback</button>
+            <button id="deployButton" type="submit" class="btn btn-warning">Rollback</button>
         </form>
     </div>
 
