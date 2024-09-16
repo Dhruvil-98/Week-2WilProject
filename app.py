@@ -4,13 +4,14 @@ import os
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
+devops = DevOpsTool('deploy.yaml')  # Load DSL configuration file
 
-devops = DevOpsTool()
 
 # Home page route
 @app.route('/')
 def home():
-    return render_template('index.html', status=devops.get_deployment_status())
+    status = devops.get_deployment_status()
+    return render_template('index.html', status=status)
 
 # Route to trigger deployment
 @app.route('/deploy', methods=['POST'])

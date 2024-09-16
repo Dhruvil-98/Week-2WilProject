@@ -1,15 +1,26 @@
 import subprocess
 import shutil
 from datetime import datetime
+import yaml
 
 class DeploymentError(Exception):
     """Custom Exception for Deployment Errors."""
     pass
 
+class DSLParser:
+    def __init__(self, config_file):
+        with open(config_file, 'r') as file:
+            self.config = yaml.safe_load(file)
+
+    def get_deployment_config(self):
+        return self.config.get('deployment', {})
+
 class DevOpsTool:
-    def __init__(self):
+    def __init__(self, dsl_config_file):
         self.current_branch = 'main'
         self.previous_branch = None
+        self.dsl_parser = DSLParser(dsl_config_file)
+        self.config = self.dsl_parser.get_deployment_config()
 
     def run_git_command(self, command, check=True):
         """Helper function to run Git commands."""
